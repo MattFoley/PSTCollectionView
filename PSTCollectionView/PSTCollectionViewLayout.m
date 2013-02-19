@@ -2,7 +2,7 @@
 //  PSTCollectionViewLayout.m
 //  PSPDFKit
 //
-//  Copyright (c) 2012 Peter Steinberger. All rights reserved.
+//  Copyright (c) 2012-2013 Peter Steinberger. All rights reserved.
 //
 
 #import "PSTCollectionView.h"
@@ -245,10 +245,16 @@ NSString *const PSTCollectionViewLayoutAwokeFromNib = @"PSTCollectionViewLayoutA
 #pragma mark - Invalidating the Layout
 
 - (void)invalidateLayout {
+    [[_collectionView collectionViewData] invalidate];
+    [_collectionView setNeedsLayout];
 }
 
 - (BOOL)shouldInvalidateLayoutForBoundsChange:(CGRect)newBounds {
-    return NO; // return YES to requery the layout for geometry information
+    // not sure about his..
+    if ((self.collectionView.bounds.size.width != newBounds.size.width ) || (self.collectionView.bounds.size.height != newBounds.size.height )) {
+        return YES;
+    }
+    return NO;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -298,8 +304,7 @@ NSString *const PSTCollectionViewLayoutAwokeFromNib = @"PSTCollectionViewLayoutA
             index = [update[@"oldToNewIndexMap"][index] intValue];
             if(index != NSNotFound) {
                 [attr setIndexPath:[update[@"newModel"] indexPathForItemAtGlobalIndex:index]];
-                [_initialAnimationLayoutAttributesDict setObject:attr
-                                                          forKey:[PSTCollectionViewItemKey collectionItemKeyForLayoutAttributes:attr]];
+                _initialAnimationLayoutAttributesDict[[PSTCollectionViewItemKey collectionItemKeyForLayoutAttributes:attr]] = attr;
             }
         }
     }
@@ -316,8 +321,7 @@ NSString *const PSTCollectionViewLayoutAwokeFromNib = @"PSTCollectionViewLayoutA
             PSTCollectionViewLayoutAttributes* finalAttrs = [attr copy];
             [finalAttrs setIndexPath:[update[@"oldModel"] indexPathForItemAtGlobalIndex:index]];
             [finalAttrs setAlpha:0];
-            [_finalAnimationLayoutAttributesDict setObject:finalAttrs
-                                                    forKey:[PSTCollectionViewItemKey collectionItemKeyForLayoutAttributes:finalAttrs]];
+            _finalAnimationLayoutAttributesDict[[PSTCollectionViewItemKey collectionItemKeyForLayoutAttributes:finalAttrs]] = finalAttrs;
         }
     }
 
@@ -339,22 +343,21 @@ NSString *const PSTCollectionViewLayoutAwokeFromNib = @"PSTCollectionViewLayoutA
                 PSTCollectionViewItemKey *key = [PSTCollectionViewItemKey collectionItemKeyForCellWithIndexPath:
                                                  [updateItem indexPathBeforeUpdate]];
 
-                PSTCollectionViewLayoutAttributes *attrs = [[_finalAnimationLayoutAttributesDict objectForKey:key]copy];
+                PSTCollectionViewLayoutAttributes *attrs = [_finalAnimationLayoutAttributesDict[key]copy];
 
                 if(attrs) {
                     [attrs setAlpha:0];
-                    [_finalAnimationLayoutAttributesDict setObject:attrs
-                                                            forKey:key];
+                    _finalAnimationLayoutAttributesDict[key] = attrs;
                 }
             }
             else if(action == PSTCollectionUpdateActionReload || action == PSTCollectionUpdateActionInsert) {
                 PSTCollectionViewItemKey *key = [PSTCollectionViewItemKey collectionItemKeyForCellWithIndexPath:
                                                  [updateItem indexPathAfterUpdate]];
-                PSTCollectionViewLayoutAttributes *attrs = [[_initialAnimationLayoutAttributesDict objectForKey:key] copy];
+                PSTCollectionViewLayoutAttributes *attrs = [_initialAnimationLayoutAttributesDict[key] copy];
 
                 if(attrs) {
                     [attrs setAlpha:0];
-                    [_initialAnimationLayoutAttributesDict setObject:attrs forKey:key];
+                    _initialAnimationLayoutAttributesDict[key] = attrs;
                 }
             }
         }
@@ -362,8 +365,7 @@ NSString *const PSTCollectionViewLayoutAwokeFromNib = @"PSTCollectionViewLayoutA
 }
 
 - (PSTCollectionViewLayoutAttributes *)initialLayoutAttributesForAppearingItemAtIndexPath:(NSIndexPath*)itemIndexPath {
-    PSTCollectionViewLayoutAttributes* attrs = [_initialAnimationLayoutAttributesDict objectForKey:
-                                                [PSTCollectionViewItemKey collectionItemKeyForCellWithIndexPath:itemIndexPath]];
+    PSTCollectionViewLayoutAttributes* attrs = _initialAnimationLayoutAttributesDict[[PSTCollectionViewItemKey collectionItemKeyForCellWithIndexPath:itemIndexPath]];
 
     if([_insertedSectionsSet containsIndex:[itemIndexPath section]]) {
         attrs = [attrs copy];
@@ -373,8 +375,7 @@ NSString *const PSTCollectionViewLayoutAwokeFromNib = @"PSTCollectionViewLayoutA
 }
 
 - (PSTCollectionViewLayoutAttributes *)finalLayoutAttributesForDisappearingItemAtIndexPath:(NSIndexPath *)itemIndexPath {
-    PSTCollectionViewLayoutAttributes* attrs = [_finalAnimationLayoutAttributesDict objectForKey:
-                                                [PSTCollectionViewItemKey collectionItemKeyForCellWithIndexPath:itemIndexPath]];
+    PSTCollectionViewLayoutAttributes* attrs = _finalAnimationLayoutAttributesDict[[PSTCollectionViewItemKey collectionItemKeyForCellWithIndexPath:itemIndexPath]];
 
     if([_deletedSectionsSet containsIndex:[itemIndexPath section]]) {
         attrs = [attrs copy];

@@ -2,7 +2,7 @@
 //  PSTCollectionViewFlowLayout.m
 //  PSPDFKit
 //
-//  Copyright (c) 2012 Peter Steinberger. All rights reserved.
+//  Copyright (c) 2012-2013 Peter Steinberger. All rights reserved.
 //
 
 #import "PSTCollectionViewFlowLayout.h"
@@ -80,7 +80,7 @@ NSString *const PSTFlowLayoutRowVerticalAlignmentKey = @"UIFlowLayoutRowVertical
         _rowAlignmentsOptionsDictionary = @{
         PSTFlowLayoutCommonRowHorizontalAlignmentKey : @(PSTFlowLayoutHorizontalAlignmentJustify),
         PSTFlowLayoutLastRowHorizontalAlignmentKey : @(PSTFlowLayoutHorizontalAlignmentJustify),
-        // TODO: those values are some enum. find out what what is.
+        // TODO: those values are some enum. find out what that is.
         PSTFlowLayoutRowVerticalAlignmentKey : @(1),
         };
 
@@ -151,7 +151,7 @@ static char kPSTCachedItemRectsKey;
                 normalizedRowFrame.origin.x += section.frame.origin.x;
                 normalizedRowFrame.origin.y += section.frame.origin.y;
                 if (CGRectIntersectsRect(normalizedRowFrame, rect)) {
-                    // TODO be more fine-graind for items
+                    // TODO be more fine-grained for items
 
                     for (NSInteger itemIndex = 0; itemIndex < row.itemCount; itemIndex++) {
                         PSTCollectionViewLayoutAttributes *layoutAttributes;
@@ -242,16 +242,24 @@ static char kPSTCachedItemRectsKey;
     return _data.contentSize;
 }
 
+- (void)setSectionInset:(UIEdgeInsets)sectionInset {
+    if (!UIEdgeInsetsEqualToEdgeInsets(sectionInset, _sectionInset)) {
+        _sectionInset = sectionInset;
+        [self invalidateLayout];
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark - Invalidating the Layout
 
 - (void)invalidateLayout {
+    [super invalidateLayout];
     objc_setAssociatedObject(self, &kPSTCachedItemRectsKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 - (BOOL)shouldInvalidateLayoutForBoundsChange:(CGRect)newBounds {
     // we need to recalculate on width changes
-    if ((self.collectionView.bounds.size.width != newBounds.size.width && self.scrollDirection == PSTCollectionViewScrollDirectionHorizontal) || (self.collectionView.bounds.size.height != newBounds.size.height && self.scrollDirection == PSTCollectionViewScrollDirectionVertical)) {
+    if ((self.collectionView.bounds.size.width != newBounds.size.width && self.scrollDirection == PSTCollectionViewScrollDirectionVertical) || (self.collectionView.bounds.size.height != newBounds.size.height && self.scrollDirection == PSTCollectionViewScrollDirectionHorizontal)) {
         return YES;
     }
     return NO;
@@ -365,19 +373,14 @@ static char kPSTCachedItemRectsKey;
         if (_data.horizontal) {
             sectionFrame.origin.x += contentSize.width;
             contentSize.width += section.frame.size.width + section.frame.origin.x;
-            contentSize.height = fmaxf(contentSize.height, sectionFrame.size.height + section.frame.origin.y);
+            contentSize.height = fmaxf(contentSize.height, sectionFrame.size.height + section.frame.origin.y + section.sectionMargins.top + section.sectionMargins.bottom);
         }else {
             sectionFrame.origin.y += contentSize.height;
             contentSize.height += sectionFrame.size.height + section.frame.origin.y;
-            contentSize.width = fmaxf(contentSize.width, sectionFrame.size.width + section.frame.origin.x);
+            contentSize.width = fmaxf(contentSize.width, sectionFrame.size.width + section.frame.origin.x + section.sectionMargins.left + section.sectionMargins.right);
         }
         section.frame = sectionFrame;
     }
-	if (_data.horizontal) {
-		contentSize.width = MAX(contentSize.width, self.collectionView.bounds.size.width);
-	} else {
-		contentSize.height = MAX(contentSize.height, self.collectionView.bounds.size.height);
-	}
     _data.contentSize = contentSize;
 }
 

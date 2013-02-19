@@ -2,7 +2,7 @@
 //  PSTCollectionViewCell.m
 //  PSPDFKit
 //
-//  Copyright (c) 2012 Peter Steinberger. All rights reserved.
+//  Copyright (c) 2012-2013 Peter Steinberger. All rights reserved.
 //
 
 #import "PSTCollectionView.h"
@@ -149,30 +149,26 @@
     self.highlighted = NO;
 }
 
+// Selection highlights underlying contents
 - (void)setSelected:(BOOL)selected {
-    if (_collectionCellFlags.selected != selected) {
-        _collectionCellFlags.selected = selected;
-        [self updateBackgroundView];
-    }
+    _collectionCellFlags.selected = selected;
+    _selectedBackgroundView.alpha = selected ? 1.0f : 0.0f;
+    [self setHighlighted:selected forViews:self.contentView.subviews];
 }
 
+// Cell highlighting only highlights the cell itself
 - (void)setHighlighted:(BOOL)highlighted {
-    if (_collectionCellFlags.highlighted != highlighted) {
-        _collectionCellFlags.highlighted = highlighted;
-        [self updateBackgroundView];
-    }
-}
-
-- (void)updateBackgroundView {
-    BOOL shouldHighlight = (self.highlighted || self.selected);
-    _selectedBackgroundView.alpha = shouldHighlight ? 1.0f : 0.0f;
-    [self setHighlighted:shouldHighlight forViews:self.contentView.subviews];
+    _collectionCellFlags.highlighted = highlighted;
 }
 
 - (void)setHighlighted:(BOOL)highlighted forViews:(id)subviews {
     for (id view in subviews) {
-        if ([view respondsToSelector:@selector(setHighlighted:)]) {
+        // Ignore the events if view wants to
+        if (!((UIView *)view).isUserInteractionEnabled &&
+            [view respondsToSelector:@selector(setHighlighted:)] &&
+            ![view isKindOfClass:[UIButton class]]) {
             [view setHighlighted:highlighted];
+            
         }
         [self setHighlighted:highlighted forViews:[view subviews]];
     }
@@ -187,7 +183,7 @@
         [_backgroundView removeFromSuperview];
         _backgroundView = backgroundView;
         _backgroundView.frame = self.bounds;
-        _backgroundView.autoresizesSubviews = UIViewAutoresizingFlexibleHeight|UIViewAutoresizingFlexibleWidth;
+        _backgroundView.autoresizingMask = UIViewAutoresizingFlexibleHeight|UIViewAutoresizingFlexibleWidth;
         [self insertSubview:_backgroundView atIndex:0];
     }
 }
